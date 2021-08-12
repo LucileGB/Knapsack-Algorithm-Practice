@@ -1,4 +1,5 @@
 import csv
+import itertools
 import os.path
 import time
 
@@ -10,16 +11,11 @@ def brute_force():
 
     csv_file = Process_CSV.get_csv()
     data = Process_CSV.fetch_data(csv_file)
-    print(data)
     print("Starting process...")
     length = len(data)
-    Data_handling.add_interests(data)
-    brute = Data_handling()
-    brute_result = brute.combination_brute(data, 0, length - 1)
-#NOTE : to use if we print everything    sorted_result = Data_handling.sort_profit(brute_result)
-
-    print("The most advantageous combination is the following :")
-    Utilities.print_results(brute.best)
+    combinations = Data_handling.combination_brute(data)
+    best_combination = Data_handling.best_profit(combinations)
+    Utilities.print_results(best_combination)
     duration = time.time() - start
     print(f"This entire process has taken {round(duration, 2)} second.")
 
@@ -43,12 +39,13 @@ class Process_CSV:
         """Check whether a row contains the three informations we need (name, price, interests),
         then add it to the result list and return it."""
         data = []
+        i = 0
         with open(file, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile, fieldnames=["name", "cost", "interests"])
             for row in reader:
                 complete = True
+                i += 1
                 for value in row.values():
-                    #NOTE : is it a good way of dealing with it or should I print "bad" rows with an error message?
                     if not value:
                         complete = False
                         break
@@ -76,63 +73,55 @@ class Process_CSV:
         dict_row["interests"] = float(dict_row["interests"])
 
 class Data_handling:
-    def __init__(self, best={"actions": [], "final_worth": 0}):
-        self.best = best
+    @staticmethod
+    def combination_brute(actions):
+        combinations_list = itertools.permutations(actions)
+        to_sort = []
+        for combination in combinations_list:
+            under_max = Data_handling.keep_below(combination, MAX_AMOUNT)
+            if len(under_max) > 0:
+                formatted = Data_handling.format_actions(under_max)
+                to_sort.append(formatted)
 
-    def combination_brute(self, data, start, end):
-        """"Print permutations of a list. Takes three parameters:
-        the list, the starting index, the ending index of the list."""
-        if start == end:
-            to_compare = {}
-            to_compare.update({"actions": Data_handling.keep_below(data, MAX_AMOUNT)})
-            Data_handling.total_earned(to_compare)
-            if to_compare["final_worth"] > self.best["final_worth"]:
-                self.best = to_compare
-
-        else:
-            for i in range(start, end + 1):
-                data[start], data[i] = data[i], data[start]
-                self.combination_brute(data, start + 1, end)
-                data[start], data[i] = data[i], data[start]
+        return to_sort
 
     @staticmethod
-    def add_interests(action):
-        """Adds an interests field to each 'action' dictionary."""
+    def add_profit(action):
+        """Adds a profit field to each 'action' dictionary."""
         for dictionary in action:
-            interests = Data_handling.interests(dictionary["cost"], dictionary["interests"])
-            dictionary.update({"interests": interests})
+            profit = Data_handling.profit(dictionary["cost"], dictionary["interests"])
+            dictionary.update({"profit": profit})
 
     @staticmethod
-    def interests(amount, rate):
-        """Calculates the final amount earned by buying one action."""
-        mult = rate/100
-        interests = round(amount*mult, 2)
-#        result = amount + interests
-        return interests
+    def profit(amount, interest):
+        """Calculates the amount earned by buying one action."""
+        mult = interest/100
+        profit = round(amount*mult, 2)
+#        result = amount + profit
+        return profit
 
     @staticmethod
     def keep_below(data_list, maximum):
         """Take a list of action and returns only values whose sum is below MAX_AMOUNT"""
         sum_list = 0
         new_list = []
+        length = len(data_list)
         for element in data_list:
             if sum_list <= maximum:
+                if sum_list == maximum:
+                    return new_list
                 new_list.append(element)
                 sum_list += element["cost"]
-                if sum_list == maximum:
+                if len(new_list) == length:
                     return new_list
             else:
                 return new_list[:-1]
 
     @staticmethod
-    def sort_profit(data):
-        #NOTE : To use if we decide to show the result of each combination
-        """Update each combination with its results, then sort them by profit."""
-        for combination in data:
-            Data_handling.add_interests(combination["actions"])
-            Data_handling.total_earned(combination)
+    def best_profit(combinaisons):
+        result = list(reversed(sorted(combinaisons, key=lambda item: item["final_worth"])))
 
-        return sorted(data, key=lambda item: item["final_worth"])
+        return result[0]
 
     @staticmethod
     def total_earned(combination):
@@ -142,18 +131,28 @@ class Data_handling:
             total = total + dictionary["interests"]
         combination.update({"final_worth": total})
 
+    @staticmethod
+    def format_actions(actions_dict):
+        Data_handling.add_profit(actions_dict)
+        result = {}
+        result.update({"actions": actions_dict})
+        result.update({"final_worth": sum(int(dic["profit"]) for dic in actions_dict)})
+
+        return result
+
 class Utilities:
     open_error = """A problem occured. Please check the following:
--  If different from the script's folder, there is no mistake in the file's path;
+-  If different the file isn't in the script's folder, there is no mistake in the file's path;
 -  You included the file's suffix (.xls, .ods, etc.);
 -  No typo in the file's name."""
+
     @staticmethod
     def print_results(result_dict):
-        names_list = []
+        total_cost = sum(int(dic["cost"]) for dic in result_dict["actions"])
+
+        print("The best combination is the following:")
         for action in result_dict["actions"]:
-            names_list.append(action["name"])
-        for name in names_list:
-            print(name)
-        print(f"\nThe final worth of this combination is {round(result_dict['final_worth'], 2)} euros.")
+            print(f"{action['name']}, for {action['cost']};")
+        print(f"The final profit of this combination is {round(result_dict['final_worth'], 2)} euros, for a total cost of {total_cost}.")
 
 brute_force()
