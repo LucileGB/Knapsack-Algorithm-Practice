@@ -39,12 +39,10 @@ class Process_CSV:
         """Check whether a row contains the three informations we need (name, price, interests),
         then add it to the result list and return it."""
         data = []
-        i = 0
         with open(file, newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile, fieldnames=["name", "cost", "interests"])
             for row in reader:
                 complete = True
-                i += 1
                 for value in row.values():
                     if not value:
                         complete = False
@@ -153,6 +151,6 @@ class Utilities:
         print("The best combination is the following:")
         for action in result_dict["actions"]:
             print(f"{action['name']}, for {action['cost']};")
-        print(f"The final profit of this combination is {round(result_dict['final_worth'], 2)} euros, for a total cost of {total_cost}.")
+        print(f"The final profit of this combination is {round(result_dict['final_worth'], 2)} euros, for a total cost of {total_cost} euros.")
 
 brute_force()
