@@ -9,11 +9,11 @@ No library installation necessary: vanilla Python 3 is enough.
 
 Launch the Command Console and naviguate to the script's folder. Type
 
-> brute.py
+> P7_01_GARRIGOUX_Lucile_brut.py
 
 for the brute algorithm, or :
 
-> optimized.py
+> P7_02_GARRIGOUX_Lucile_optimized.py
 
 for the optimized algorithm.
 
